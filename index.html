@@ -277,6 +277,13 @@
             line-height: 1.6;
             color: #2d3748;
         }
+        .post-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
         .no-posts {
             text-align: center;
             padding: 40px 0;
@@ -532,6 +539,10 @@
                         <label for="postContent">Текст поста</label>
                         <textarea id="postContent" rows="4" placeholder="Содержание..." required></textarea>
                     </div>
+                    <div class="form-group">
+                        <label for="postImage">Ссылка на изображение (необязательно)</label>
+                        <input type="text" id="postImage" placeholder="https://example.com/image.jpg" />
+                    </div>
                     <button type="submit" class="btn btn-success">Опубликовать</button>
                     <button type="button" id="cancelPostBtn" class="btn btn-outline" style="margin-left:10px;">Отмена</button>
                 </form>
@@ -633,14 +644,34 @@
         }
 
         let posts = DB.getPosts();
+        // Если постов нет, создаём начальные (включая все посты от DUNYA)
         if (posts.length === 0) {
-            posts.push({
-                id: 1,
-                title: 'Добро пожаловать в RCG!',
-                content: 'Redstone Contracting Group открывает свои двери для новых сотрудников и партнёров. Мы берёмся за любые строительные и ремонтные работы в Доброграде. Свяжитесь с нами – и мы сделаем ваш проект реальностью!',
-                author: 'RCG FM',
-                date: new Date().toLocaleString('ru-RU')
-            });
+            posts = [
+                {
+                    id: 1,
+                    title: 'Добро пожаловать в RCG!',
+                    content: 'Redstone Contracting Group открывает свои двери для новых сотрудников и партнёров. Мы берёмся за любые строительные и ремонтные работы в Доброграде. Свяжитесь с нами – и мы сделаем ваш проект реальностью!',
+                    author: 'RCG FM',
+                    date: '2025-12-22 13:35',
+                    imageUrl: null
+                },
+                {
+                    id: 2,
+                    title: 'Строительная компания RCG снова работает!',
+                    content: 'Строительная компания Redstone Contracting Group снова работает и активно нанимает сотрудников! С опытом и без! Заявку можете оставить на нашем сайте: https://discord.gg/9nayTjNk! Наш девиз: Научим-Поддержим-Заплатим! Находимся мы по адресу: Брокстон, угол между Брокстон 7 и 15, трейлер на территории стройки. Или номер телефона: +1 (734) 555-0147! Сегодня была смена труб на улице: Франклин! Теперь на данной улице новые, качественные трубы! Ждём вас на нашем сайте! # Строительная компания Redstone Contracting Group набирает сотрудников! Всё что требуется: наличие ID-C, отсутствие штрафов, желательно иметь образование, права категории: B, опыт работы (необязательно!). От нас: выплаты за смены -> обучение.',
+                    author: 'Dunya',
+                    date: '2026-03-09 17:14',
+                    imageUrl: null
+                },
+                {
+                    id: 3,
+                    title: 'Масштабное обновление в RCG!',
+                    content: 'Масштабное обновление в компании Redstone Contracting Group! - Мы переехали на новый современный склад и ищем активных людей в нашу команду. Фотографии склада: Что мы даем: Своевременные выплаты и обучение с нуля. Реальный опыт в строительной сфере. Что нужно от вас: - Гражданство и чистая история (без штрафов). - Водительские права. - Желание работать (образование и опыт приветствуются, но не обязательные). Где мы: Угол Брокстон 7 и 15 (трейлер на стройке). Телефон: +1 (734) 555-0147 Наш сайт: https://discord.gg/JqryEU8YPc # Строительная компания Redstone Contracting Group ведёт набор сотрудников на стройку! Что мы даем: Своевременные выплаты и обучение с нуля. Реальный опыт в строительной сфере. Что нужно от вас: - Гражданство и чистая история (без штрафов, судимостей.). - Водительские права. - Желание работать (образование и опыт приветствуются, но не обязательные). Где мы: Угол Брокстон 7 и 15 (трейлер на стройке). Телефон: +1 (734) 555-0147 Наш сайт: https://discord.gg/JqryEU8YPc Фотография сделана через нейросеть.',
+                    author: 'Dunya',
+                    date: '2026-04-11 17:20',
+                    imageUrl: null
+                }
+            ];
             DB.setPosts(posts);
         }
     }
@@ -686,6 +717,10 @@
         let html = '';
         const sorted = [...allPosts].reverse();
         for (let p of sorted) {
+            let imageHtml = '';
+            if (p.imageUrl && p.imageUrl.trim() !== '') {
+                imageHtml = `<img src="${escapeHtml(p.imageUrl)}" alt="Изображение к посту" class="post-image" />`;
+            }
             html += `
                 <div class="post-item">
                     <div class="post-title">${escapeHtml(p.title)}</div>
@@ -694,6 +729,7 @@
                         <span>${escapeHtml(p.date)}</span>
                     </div>
                     <div class="post-content">${escapeHtml(p.content)}</div>
+                    ${imageHtml}
                 </div>
             `;
         }
@@ -783,7 +819,7 @@
         showPage('home');
     }
 
-    function createPost(title, content) {
+    function createPost(title, content, imageUrl) {
         if (!currentUser || !isAdmin(currentUser)) {
             alert('У вас недостаточно прав для создания поста.');
             return false;
@@ -794,7 +830,8 @@
             title: title.trim(),
             content: content.trim(),
             author: currentUser.username,
-            date: new Date().toLocaleString('ru-RU')
+            date: new Date().toLocaleString('ru-RU'),
+            imageUrl: imageUrl ? imageUrl.trim() : null
         });
         DB.setPosts(posts);
         renderPosts();
@@ -856,6 +893,7 @@
         if (!createPostForm.classList.contains('hidden')) {
             document.getElementById('postTitle').value = '';
             document.getElementById('postContent').value = '';
+            document.getElementById('postImage').value = '';
             document.getElementById('postTitle').focus();
         }
     });
@@ -868,11 +906,12 @@
         e.preventDefault();
         const title = document.getElementById('postTitle').value.trim();
         const content = document.getElementById('postContent').value.trim();
+        const imageUrl = document.getElementById('postImage').value.trim();
         if (!title || !content) {
             alert('Заполните все поля.');
             return;
         }
-        if (createPost(title, content)) {
+        if (createPost(title, content, imageUrl)) {
             postForm.reset();
             createPostForm.classList.add('hidden');
             showPage('posts');
